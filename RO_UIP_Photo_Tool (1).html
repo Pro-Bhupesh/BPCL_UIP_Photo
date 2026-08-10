@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>RO UIP Photo Capture</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#003087;
+    --navy-dark:#0B3D6E;
+    --gold:#FFC000;
+    --gold-dark:#F5A800;
+    --bg:#F4F6F9;
+    --card:#FFFFFF;
+    --ink:#1A2233;
+    --muted:#6B7488;
+    --line:#E3E7EE;
+    --ok:#1E8E5A;
+    --ok-bg:#E9F7EF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Inter,Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:110px;
+  }
+  header{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-dark) 100%);
+    color:#fff;
+    padding:22px 18px 26px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    right:-40px; top:-60px;
+    width:200px; height:200px;
+    background:radial-gradient(circle, rgba(255,192,0,0.18) 0%, transparent 70%);
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .brand-badge{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--gold);
+    color:var(--navy);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:15px;
+    flex-shrink:0;
+  }
+  header h1{
+    margin:0;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:0.2px;
+  }
+  header p.sub{
+    margin:2px 0 0;
+    font-size:12.5px;
+    color:#CBD8F0;
+  }
+  .form-card{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:12px;
+    padding:14px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.full{grid-column:1/-1;}
+  .field label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color:#D9E3F5;
+    font-weight:600;
+  }
+  .field input{
+    background:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 11px;
+    font-size:14.5px;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .field input:focus{outline:2px solid var(--gold);}
+
+  main{max-width:760px;margin:0 auto;padding:16px;}
+
+  .progress-wrap{
+    background:var(--card);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:14px;
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .progress-track{
+    flex:1;
+    height:8px;
+    background:var(--line);
+    border-radius:99px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--gold-dark),var(--gold));
+    width:0%;
+    transition:width .3s ease;
+  }
+  .progress-label{font-size:12.5px;font-weight:700;color:var(--navy);white-space:nowrap;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width:520px){
+    .grid{grid-template-columns:1fr;}
+    .form-card{grid-template-columns:1fr;}
+  }
+
+  .photo-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 1px 3px rgba(16,24,40,0.05);
+  }
+  .photo-card.done{border-color:var(--ok);}
+  .photo-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 12px 8px;
+  }
+  .photo-title{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--navy);
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .num-badge{
+    width:20px;height:20px;
+    border-radius:6px;
+    background:var(--navy);
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .photo-card.done .num-badge{background:var(--ok);}
+  .status-chip{
+    font-size:10.5px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:99px;
+    background:#FFF4DA;
+    color:var(--gold-dark);
+  }
+  .photo-card.done .status-chip{background:var(--ok-bg);color:var(--ok);}
+
+  .preview-area{
+    position:relative;
+    aspect-ratio:4/3;
+    background:#EEF1F6;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .preview-area img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .placeholder{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    color:var(--muted);
+    font-size:12px;
+    padding:14px;
+    text-align:center;
+  }
+  .placeholder svg{width:30px;height:30px;opacity:0.5;}
+
+  .photo-actions{
+    display:flex;
+    gap:8px;
+    padding:10px 12px 12px;
+  }
+  .btn{
+    flex:1;
+    border:none;
+    border-radius:9px;
+    padding:9px 10px;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:5px;
+    transition:filter .15s ease;
+  }
+  .btn:active{filter:brightness(0.92);}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-secondary{background:#EEF1F6;color:var(--navy);}
+  input[type=file]{display:none;}
+
+  .gen-bar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow:0 -4px 14px rgba(16,24,40,0.06);
+  }
+  .gen-inner{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center;}
+  .gen-btn{
+    flex:1;
+    background:linear-gradient(135deg,var(--gold-dark),var(--gold));
+    color:var(--navy);
+    border:none;
+    padding:14px;
+    border-radius:11px;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+    font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .gen-btn:disabled{opacity:0.5;cursor:not-allowed;filter:grayscale(0.3);}
+  .gen-note{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;}
+
+  .toast{
+    position:fixed;
+    top:16px;left:50%;
+    transform:translateX(-50%) translateY(-20px);
+    background:var(--navy);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:9px;
+    font-size:13px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:all .25s ease;
+    z-index:999;
+    box-shadow:0 6px 20px rgba(0,0,0,0.2);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand-badge">BP</div>
+    <div>
+      <h1>RO UIP Photo</h1>
+      <p class="sub">Upgrade Initiation Proposal</p>
+    </div>
+  </div>
+  <div class="form-card">
+    <div class="field">
+      <label>RO Name</label>
+      <input id="roName" type="text" placeholder="e.g. BP Keshwapur COCO, Hubli">
+    </div>
+    <div class="field">
+      <label>Customer Code</label>
+      <input id="custCode" type="text" placeholder="e.g. 123456">
+    </div>
+    <div class="field full">
+      <label>Inspection Date</label>
+      <input id="inspDate" type="date">
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+    <div class="progress-label" id="progLabel">0 / 6 photos</div>
+  </div>
+
+  <div class="grid" id="photoGrid"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="gen-bar">
+  <div class="gen-inner">
+    <button class="gen-btn" id="genBtn" disabled>
+      <span>📄</span> Generate UIP PDF
+    </button>
+  </div>
+  <div class="gen-note" id="genNote">Fill RO details and capture all 6 photos to enable PDF export</div>
+</div>
+
+<script>
+const SLOTS = [
+  {key:'entry', label:'Entry Side Photo'},
+  {key:'exit', label:'Exit Side Photo'},
+  {key:'sales', label:'Sales Building Photo'},
+  {key:'tank', label:'Tank Farm Area Photo'},
+  {key:'toilet', label:'Toilet Photo'},
+  {key:'electrical', label:'Electrical Room Photo'},
+];
+
+const photos = {}; // key -> {dataUrl, w, h}
+
+const grid = document.getElementById('photoGrid');
+
+SLOTS.forEach((slot, i) => {
+  const card = document.createElement('div');
+  card.className = 'photo-card';
+  card.id = 'card-' + slot.key;
+  card.innerHTML = `
+    <div class="photo-head">
+      <div class="photo-title"><span class="num-badge">${i+1}</span>${slot.label}</div>
+      <div class="status-chip" id="chip-${slot.key}">Pending</div>
+    </div>
+    <div class="preview-area" id="preview-${slot.key}">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h3l2-2h6l2 2h3v13H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <span>No photo captured</span>
+      </div>
+    </div>
+    <div class="photo-actions">
+      <label class="btn btn-primary" for="file-${slot.key}">📷 Capture</label>
+      <button class="btn btn-secondary" id="retake-${slot.key}" style="display:none;">↺ Retake</button>
+      <input type="file" id="file-${slot.key}" accept="image/*" capture="environment">
+    </div>
+  `;
+  grid.appendChild(card);
+
+  const fileInput = card.querySelector(`#file-${slot.key}`);
+  fileInput.addEventListener('change', (e) => handleFile(slot.key, e.target.files[0]));
+  card.querySelector(`#retake-${slot.key}`).addEventListener('click', () => fileInput.click());
+});
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function handleFile(key, file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Downscale/compress for reasonable PDF size
+      const maxDim = 1400;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim){
+        const scale = maxDim / Math.max(w,h);
+        w = Math.round(w*scale); h = Math.round(h*scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      photos[key] = {dataUrl, w, h};
+      renderPreview(key);
+      updateProgress();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPreview(key){
+  const area = document.getElementById('preview-' + key);
+  area.innerHTML = `<img src="${photos[key].dataUrl}" alt="${key}">`;
+  document.getElementById('card-' + key).classList.add('done');
+  document.getElementById('chip-' + key).textContent = 'Captured';
+  document.getElementById('retake-' + key).style.display = 'flex';
+}
+
+function updateProgress(){
+  const count = Object.keys(photos).length;
+  document.getElementById('progFill').style.width = (count/6*100) + '%';
+  document.getElementById('progLabel').textContent = `${count} / 6 photos`;
+  checkReady();
+}
+
+function checkReady(){
+  const roName = document.getElementById('roName').value.trim();
+  const custCode = document.getElementById('custCode').value.trim();
+  const count = Object.keys(photos).length;
+  const ready = roName && custCode && count === 6;
+  document.getElementById('genBtn').disabled = !ready;
+  const note = document.getElementById('genNote');
+  if (ready){
+    note.textContent = 'Ready to generate';
+  } else {
+    const missing = [];
+    if(!roName) missing.push('RO name');
+    if(!custCode) missing.push('customer code');
+    if(count < 6) missing.push((6-count)+' photo(s)');
+    note.textContent = 'Missing: ' + missing.join(', ');
+  }
+}
+
+document.getElementById('roName').addEventListener('input', checkReady);
+document.getElementById('custCode').addEventListener('input', checkReady);
+
+// default date = today
+document.getElementById('inspDate').valueAsDate = new Date();
+
+document.getElementById('genBtn').addEventListener('click', generatePDF);
+
+function generatePDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const navy = [0,48,135];
+  const gold = [255,192,0];
+  const margin = 36;
+
+  const roName = document.getElementById('roName').value.trim();
+  const custCode = document.getElementById('custCode').value.trim();
+  const inspDateRaw = document.getElementById('inspDate').value;
+  const dateStr = inspDateRaw ? formatDate(inspDateRaw) : formatDate(new Date().toISOString().slice(0,10));
+
+  function drawHeader(){
+    doc.setFillColor(...navy);
+    doc.rect(0,0,pageW,64,'F');
+    doc.setFillColor(...gold);
+    doc.rect(0,64,pageW,4,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(15);
+    doc.text('BPCL — RO UIP Photo', margin, 28);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(210,222,245);
+    doc.text('Upgrade Initiation Proposal', margin, 44);
+  }
+
+  function drawDetailsBlock(y){
+    doc.setDrawColor(227,231,238);
+    doc.setFillColor(244,246,249);
+    doc.roundedRect(margin, y, pageW-margin*2, 66, 6, 6, 'F');
+    doc.setTextColor(20,28,45);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10);
+    const colGap = (pageW - margin*2)/2;
+    doc.text('RO Name', margin+14, y+22);
+    doc.text('Customer Code', margin+14+colGap, y+22);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(12);
+    doc.text(roName || '-', margin+14, y+40);
+    doc.text(custCode || '-', margin+14+colGap, y+40);
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10);
+    doc.text('Inspection Date', margin+14, y+56);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(11);
+    doc.text(dateStr, margin+140, y+56);
+  }
+
+  function drawFooter(pageNum, totalPages){
+    doc.setDrawColor(227,231,238);
+    doc.line(margin, pageH-30, pageW-margin, pageH-30);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(120,128,145);
+    doc.text('Generated via RO UIP Photo Capture Tool', margin, pageH-16);
+    doc.text(`Page ${pageNum} of ${totalPages}`, pageW-margin, pageH-16, {align:'right'});
+  }
+
+  // Page 1: cover + first 2 photos (2-up grid layout across all pages, 2 photos per page)
+  const totalPages = Math.ceil(SLOTS.length/2) + 0; // 3 pages for 6 photos, 2 per page
+  let pageNum = 0;
+  const pagesCount = Math.ceil(SLOTS.length/2);
+
+  for(let p=0; p<pagesCount; p++){
+    pageNum++;
+    if(p>0) doc.addPage();
+    drawHeader();
+    let contentY = 84;
+    if(p===0){
+      drawDetailsBlock(contentY);
+      contentY += 80;
+    } else {
+      contentY += 8;
+    }
+
+    const pairSlots = SLOTS.slice(p*2, p*2+2);
+    const imgAreaW = pageW - margin*2;
+    const imgAreaH = 300;
+    pairSlots.forEach((slot, idx) => {
+      const yTop = contentY + idx*(imgAreaH+42);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11.5);
+      doc.setTextColor(...navy);
+      doc.text(`${SLOTS.indexOf(slot)+1}. ${slot.label}`, margin, yTop+14);
+
+      const boxY = yTop + 22;
+      doc.setDrawColor(227,231,238);
+      doc.setLineWidth(1);
+      doc.rect(margin, boxY, imgAreaW, imgAreaH);
+
+      const photo = photos[slot.key];
+      if(photo){
+        // fit image maintaining aspect ratio within box
+        const boxRatio = imgAreaW/imgAreaH;
+        const imgRatio = photo.w/photo.h;
+        let drawW, drawH;
+        if(imgRatio > boxRatio){
+          drawW = imgAreaW - 8;
+          drawH = drawW/imgRatio;
+        } else {
+          drawH = imgAreaH - 8;
+          drawW = drawH*imgRatio;
+        }
+        const dx = margin + (imgAreaW-drawW)/2;
+        const dy = boxY + (imgAreaH-drawH)/2;
+        doc.addImage(photo.dataUrl, 'JPEG', dx, dy, drawW, drawH);
+      }
+    });
+
+    drawFooter(pageNum, pagesCount);
+  }
+
+  const safeName = (roName || 'RO').replace(/[^a-z0-9]+/gi,'_').slice(0,40);
+  const fileName = `UIP_Photos_${safeName}_${custCode || 'NA'}.pdf`;
+  doc.save(fileName);
+  showToast('PDF generated ✓');
+}
+
+function formatDate(isoStr){
+  const d = new Date(isoStr + 'T00:00:00');
+  const opts = {day:'2-digit', month:'short', year:'numeric'};
+  return d.toLocaleDateString('en-IN', opts);
+}
+</script>
+
+</body>
+</html>
